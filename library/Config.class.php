@@ -5,15 +5,15 @@ class Config
 
     private $config = array();
 
-    public function __construct()
+    public function __construct($configFile = 'config.ini')
     {
 
-	if (!file_exists('config.ini'))
+	if (!file_exists($configFile))
 	{
 	    throw new exception(__METHOD__ . "::missing configuration file");
 	}
 
-	if ($config = parse_ini_file('config.ini', true))
+	if ($config = parse_ini_file($configFile, true))
 	{
 	    foreach ($config as $k => $c)
 	    {

@@ -14,7 +14,12 @@ if (!class_exists('PHP_DocBlockGenerator'))
     {
 	throw new exception(__FILE__ . "::Missing DocBlock Class Path");
     }
-    set_include_path(get_include_path() . PATH_SEPARATOR . $config->app['docBlockGeneratorPath']);
+
+    set_include_path(
+	    get_include_path() .
+	    PATH_SEPARATOR .
+	    $config->app['docBlockGeneratorPath']);
+
     require_once('DocBlockGenerator.php');
 }
 
@@ -28,10 +33,35 @@ if (empty($config->app['inputDirectory']))
 $scanFiles = new Scan($config->app['inputDirectory']);
 $scanFiles->scan();
 
-if (is_array($config->filelist)
-	&& count($config->filelist) >= 1)
+$includeFileList = array();
+$excludeFileList = array();
+$includeDirList = array();
+$excludeDirList = array();
+
+if (is_array($config->filelist))
 {
-    $useFileList = true;
+    if (!empty($config->filelist['include']))
+    {
+	$includeFileList = $config->filelist['include'];
+    }
+
+    if (!empty($config->filelist['exclude']))
+    {
+	$excludeFileList = $config->filelist['exclude'];
+    }
+}
+
+if (is_array($config->dirlist))
+{
+    if (!empty($config->dirlist['include']))
+    {
+	$includeDirList = $config->dirlist['include'];
+    }
+
+    if (!empty($config->dirlist['exclude']))
+    {
+	$excludeDirList = $config->dirlist['exclude'];
+    }
 }
 
 $thisFilePath = false;
@@ -39,11 +69,22 @@ $thisFilePath = false;
 while ($file = $scanFiles->next())
 {
 
-    if ($useFileList)
+    if (!empty($includeFileList))
     {
-	if (in_array(basename($file), $config->filelist['file']))
+	if (in_array(basename($file), $includeFileList))
 	{
 	    $thisFilePath = $file;
+	}
+    } else
+    if (!empty($includeDirList))
+    {
+	foreach ($includeDirList as $includedDir)
+	{
+	    if (strpos($file, $includedDir))
+	    {
+		$thisFilePath = $file;
+		continue;
+	    }
 	}
     } else
     {
@@ -53,7 +94,29 @@ while ($file = $scanFiles->next())
 	}
     }
 
-    if (strlen($thisFilePath) > 0)
+    if ($thisFilePath && !empty($excludeFileList))
+    {
+	if (in_array(basename($file), $excludeFileList))
+	{
+	    $thisFilePath = false;
+	    print("\n" . __LINE__ . "::" . basename($file) . "::Excluded File");
+	}
+    }
+
+    if ($thisFilePath && !empty($excludeDirList))
+    {
+	foreach ($excludeDirList as $excludedDir)
+	{
+	    if (strpos($thisFilePath, $excludedDir))
+	    {
+		$thisFilePath = false;
+		print("\n".__LINE__."::".basename($file)."::Excluded Directory");
+		continue;
+	    }
+	}
+    }
+
+    if ($thisFilePath && strlen($thisFilePath) > 0)
     {
 	if (substr($file, -4) == '.php')
 	{
